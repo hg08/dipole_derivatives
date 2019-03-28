@@ -1,0 +1,9 @@
+0.0005     What is the timestep (ps):
+D2O        What is the name of the system?
+HOMO_centers.xyz   What is the name of the trajecotry file:
+0         What is the initial step of the trajecotry:
+8         What is the end step of the trajecotry:
+224       What is the total number of atoms in the system:
+2         What is the frequency for sampling? (Your sample the trajectory every ns step. What is the ns you want it to be?):
+O         What is the centeral atoms? 
+x         What is the normal axis ?

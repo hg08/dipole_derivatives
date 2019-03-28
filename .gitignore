@@ -1,0 +1,7 @@
+traj_pos_sampled.dat
+*.dat
+*.csv
+*.mod
+*.o
+TEST*
+test*
