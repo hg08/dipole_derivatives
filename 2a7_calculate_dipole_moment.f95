@@ -26,6 +26,7 @@ SUBROUTINE calculate_dipole_moment(host_atom, nat, n_samples)
   INTEGER, INTENT(IN) :: n_samples                  ! n_samples = INT(nmo/ns)
   CHARACTER(2), INTENT(IN) :: host_atom             ! to define the types of host and guest atoms
   INTEGER :: u, ierror
+  REAL(kind=4) :: total_charge
   !===============
   ! Initialization
   !===============
@@ -35,6 +36,7 @@ SUBROUTINE calculate_dipole_moment(host_atom, nat, n_samples)
   u = 8        ! UNIT for WRITING
   ierror = 2   
   istat = 0
+  total_charge = 0.0
   !============================
   ! Calculate the dipole moment
   !============================
@@ -42,7 +44,13 @@ SUBROUTINE calculate_dipole_moment(host_atom, nat, n_samples)
   indx = 0
   ALLOCATE(mu(n_samples, 32, 3),STAT=istat)
   mu(:,:,:) = 0.0
-  
+ 
+
+  !==================================================================
+  ! For testing
+  ! Open a file to write down the molecular charge for each molecule.
+  OPEN (UNIT=u,FILE='test_output_molecular_charge.dat',STATUS='REPLACE',ACTION='WRITE',IOSTAT=ierror)
+  !Loop the trajectory steps 
   do i = 1, n_samples 
     indx = 0
     Oxygen: do iatom = 1, nat 
@@ -51,16 +59,25 @@ SUBROUTINE calculate_dipole_moment(host_atom, nat, n_samples)
         mu(i,indx,1) = wannier_center_info(iatom, i)%coord(1) * wannier_center_info(iatom, i)%charge  
         mu(i,indx,2) = wannier_center_info(iatom, i)%coord(2) * wannier_center_info(iatom, i)%charge
         mu(i,indx,3) = wannier_center_info(iatom, i)%coord(3) * wannier_center_info(iatom, i)%charge
+        total_charge = wannier_center_info(iatom, i)%charge
         guest3: do jatom = 1, nat
-          if (wannier_center_info(jatom, i)%molecular_id == wannier_center_info(iatom, i)%molecular_id) then
+          if ( TRIM(wannier_center_info(jatom, i)%wannier_center_name) .NE. TRIM(host_atom) .AND.      &
+            wannier_center_info(jatom, i)%molecular_id == wannier_center_info(iatom, i)%molecular_id & 
+             ) then
             mu(i,indx,1) = mu(i,indx,1) + wannier_center_info(jatom, i)%image_coord(1) * wannier_center_info(jatom, i)%charge  
             mu(i,indx,2) = mu(i,indx,2) + wannier_center_info(jatom, i)%image_coord(2) * wannier_center_info(jatom, i)%charge
             mu(i,indx,3) = mu(i,indx,3) + wannier_center_info(jatom, i)%image_coord(3) * wannier_center_info(jatom, i)%charge
+            total_charge = total_charge + wannier_center_info(jatom, i)%charge
           endif
+          ! For testing 
+          ! The next line can be deleted
+          WRITE(u,*) "total charge:",iatom, jatom, total_charge
         enddo guest3
       end if O
     end do Oxygen
   end do
+
+  CLOSE(UNIT=u)
 
   !===========
   !For testing

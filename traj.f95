@@ -96,10 +96,11 @@ CONTAINS
       read(indx,*)!Neglect data of this line
       read(indx,*)!Neglect data of this line 
       write(*,*) 'the step:', imovie
+      ! Loop for ALL atoms(or wannier centers)
       inner: do iatom= 1,nat
         read (indx,*) wannier_center_info(iatom, i_sample)%wannier_center_name, wannier_center_info(iatom,i_sample)%coord(1), & 
           wannier_center_info(iatom,i_sample)%coord(2), wannier_center_info(iatom,i_sample)%coord(3)
-        ! Initialize the image_coord attribute
+        ! Initialize the image_coord attribute: ALL the image coordinates are set to be its own coordinates
         wannier_center_info(iatom,i_sample)%image_coord(1) = wannier_center_info(iatom,i_sample)%coord(1) 
         wannier_center_info(iatom,i_sample)%image_coord(2) = wannier_center_info(iatom,i_sample)%coord(2)
         wannier_center_info(iatom,i_sample)%image_coord(3) = wannier_center_info(iatom,i_sample)%coord(3)

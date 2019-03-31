@@ -11,7 +11,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
   ! 0e) Record of revisions:
   !    Date             Programmer                  description of Change
   !    ====             ==========                  ====================
-  ! 2019.03.29          Gang Huang                  coord_translation (version 1.4.2). 
+  ! 2019.03.29          Gang Huang                  coord_translation (version 1.7). 
 
   !==============
   !1) Declaration
@@ -70,20 +70,23 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
   
   ! coord.translation AND clustering
   outer: do i =1,n_samples
-  !outer: do i =1, 2
+    ! Loop for each host atom
     inner: DO iatom = 1, nat
       oxygen: if (TRIM(wannier_center_info(iatom, i)%wannier_center_name) == TRIM(host_atom)) then
+       ! Loop for each guest atom
         inner2: DO jatom = 1, nat
           hydrogen: if (TRIM(wannier_center_info(jatom, i)%wannier_center_name) == TRIM(guest_atom)) then
-            !=====================================================================================
-             tmp = (wannier_center_info(jatom, i)%coord(1) - wannier_center_info(iatom, i)%coord(1))**2  &
-                  +(wannier_center_info(jatom, i)%coord(2) - wannier_center_info(iatom, i)%coord(2))**2  &
-                  +(wannier_center_info(jatom, i)%coord(3) - wannier_center_info(iatom, i)%coord(3))**2 
+            !=============================================================================================
+            !NOTICE: we should use wannier_center_info(:, :)%image_coord(:) to calculate the distance, NOT
+            !wannier_center_info(:,:)%coord(:)
+             tmp = (wannier_center_info(jatom, i)%image_coord(1) - wannier_center_info(iatom, i)%image_coord(1))**2  &
+                  +(wannier_center_info(jatom, i)%image_coord(2) - wannier_center_info(iatom, i)%image_coord(2))**2  &
+                  +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%image_coord(3))**2 
              if (tmp .LE. R_cutoff_square) then                
                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
-               wannier_center_info(jatom, i)%image_coord(1) = wannier_center_info(iatom, i)%coord(1) 
-               wannier_center_info(jatom, i)%image_coord(2) = wannier_center_info(iatom, i)%coord(1) 
-               wannier_center_info(jatom, i)%image_coord(3) = wannier_center_info(iatom, i)%coord(1) 
+               !wannier_center_info(jatom, i)%image_coord(1) = wannier_center_info(jatom, i)%coord(1) 
+               !wannier_center_info(jatom, i)%image_coord(2) = wannier_center_info(jatom, i)%coord(1) 
+               !wannier_center_info(jatom, i)%image_coord(3) = wannier_center_info(jatom, i)%coord(1) 
              !elseif ((tmp .GE. 103.75) .OR. (tmp .LE. 205.76)) then
              else
                CALL min_dist_image(wannier_center_info(iatom, i),wannier_center_info(jatom, i),a,b,c,min_dist_image_value,ll,mm,nn) 
@@ -91,8 +94,8 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                  !WRITE(*,*) ll
                  wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
                  wannier_center_info(jatom, i)%image_coord(1) = wannier_center_info(jatom, i)%coord(1) - ll*a
-                 wannier_center_info(jatom, i)%image_coord(2) = wannier_center_info(jatom, i)%coord(1) - mm*b
-                 wannier_center_info(jatom, i)%image_coord(3) = wannier_center_info(jatom, i)%coord(1) - nn*c
+                 wannier_center_info(jatom, i)%image_coord(2) = wannier_center_info(jatom, i)%coord(2) - mm*b
+                 wannier_center_info(jatom, i)%image_coord(3) = wannier_center_info(jatom, i)%coord(3) - nn*c
                end if
              endif
           endif hydrogen
@@ -143,24 +146,34 @@ l = 0
 m = 0
 n = 0
 arr(:,:,:) = 0
-!==========
-!Operations
+!======================================================================================================
+!Operations: to calculate all the image's coordinates.
+! There are totally 27 images, therefore, there are 27 distances to be calculated, ie., the array arr
+! has 27 elements.
+! Be carefule, if I change the image_coord(:) into coord(:), the calculated dipole moment will be wrong!
+! In that case, because of PBC, I will assign wrong coordinate for some D and X atoms. This mistake can 
+! be avoided if I use image_coord(:) to calculate distance between atoms (or wannier centers).
+!======================================================================================================
 do l = -1,1
   do m = -1,1
     do n = -1,1
       arr(l+2,m+2,n+2) =           &
-        (p1%coord(1) + l*a - p2%coord(1))**2  &
-        +(p1%coord(2) + m*b - p2%coord(2))**2 &
-        +(p1%coord(3) + n*c - p2%coord(3))**2 
+        (p1%image_coord(1) + l*a - p2%image_coord(1))**2  &
+        +(p1%image_coord(2) + m*b - p2%image_coord(2))**2 &
+        +(p1%image_coord(3) + n*c - p2%image_coord(3))**2 
     enddo
   enddo
 enddo
+!==================
 ! Return the result
+!==================
+! The smallest distance between host atom and the guest's image
 min_value = MINVAL(arr)
+! The index of the element of the array, which deterimine the very image that is closest to the host atom 
 min_location = MINLOC(arr)
+! the interger ll,mm, nn can help us to find out the location of the guest atom's image
 ll = min_location(1)-2
 mm = min_location(2)-2
 nn = min_location(3)-2
 
 END SUBROUTINE min_dist_image
-

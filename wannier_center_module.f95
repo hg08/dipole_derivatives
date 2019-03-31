@@ -6,7 +6,7 @@ IMPLICIT NONE
 TYPE :: wannier_center
   CHARACTER(LEN=2) :: wannier_center_name
   INTEGER :: molecular_id
-  REAL :: charge
+  REAL(kind=4) :: charge
   REAL, DIMENSION(3) :: coord 
   REAL, DIMENSION(3) :: image_coord 
 END TYPE wannier_center
