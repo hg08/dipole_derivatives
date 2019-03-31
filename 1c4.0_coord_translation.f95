@@ -3,19 +3,14 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
   ! 0a) Purpose: 
   ! The subroutine  coord_transform implement the coordinate translation for the atoms and wannier centers, considering the periodic
   ! boundary condition (PBC) and CLUSTERING.  
-  ! 0b) The subroutine 1c3_coord_translation is different from the subroutine 1c2_coord_translation in the basic idea. 
-  ! 0c) Because do "coordinate tranlastion or not" depends on the choice of the host-guest pair.(IMPORTANT!) 
-  ! Therefore, the image_coord is just a auxinary variable to help us to calculate the distance between host and guest atoms,
-  ! and we have to calculate the distance then to determine the clusters ie., to determine each D atom to belong to a certain D2O water
-  ! molecule. (That means we can not seperate coord translation and clustering. They have to be combined!) 
-  ! 0d) The ecpecting result should be: When calculating the guest-host pair distances, for different host atoms (O atom), the same guest 
-  ! atom (D or X) may use differnt image coordinates to calculate the guest-host pair distance.
+  ! 0b) The subroutine 1c4_coord_translation is different from the subroutine 1c3_coord_translation and before in the definition of
+  ! A1,B1,A2,B2,C1,C2,A0,B0,C0. 
   !
   ! 0e) Record of revisions:
   !    Date             Programmer                  description of Change
   !    ====             ==========                  ====================
-  ! 2019.03.28          Gang Huang                  coord_translation (version 1.3). It does two things:
-  !                                                 clustering and coordinate translation. 
+  ! 2019.03.29          Gang Huang                  coord_translation (version 1.4.0). 
+  !                                                 the difference is: A1,A2,B1,B2,... is a little different from previous version.
 
   !==============
   !1) Declaration
@@ -26,7 +21,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
   !==========
   !parameters
   !==========
-  REAL(kind=4),PARAMETER :: R_OD_c = MAX(1.05,0.6,0.7)           ! in Angstrom
+  REAL(kind=4),PARAMETER :: R_OD_c = MAX(1.32,0.6,0.7)           ! in Angstrom
   REAL(kind=4) :: R_cutoff             ! The cutoff of radium which is used to determine whether a guest atom is belong to a
                                        ! molecule defined by the host atom. (in Angstrom)
   REAL(kind=4) :: R_cutoff_square
@@ -56,7 +51,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
   
   ! To determine the Radium cutoff for the host-guest pair
   if (TRIM(host_atom)=="O" .AND. TRIM(guest_atom)=="H") then
-    R_cutoff = 1.05                 ! in Angstrom 
+    R_cutoff = 1.32                 ! in Angstrom 
     R_cutoff_square = R_cutoff**2
   else if (TRIM(host_atom)=="H" .AND. TRIM(guest_atom)=="X") then
     R_cutoff = 0.6                  ! in Angstrom 
@@ -73,29 +68,29 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
         inner2: DO jatom = 1, nat
           hydrogen: if (TRIM(wannier_center_info(jatom, i)%wannier_center_name) == TRIM(guest_atom)) then
               ! define logical varibles
-              A1 =  wannier_center_info(iatom, i)%coord(1) < (-a/2)+R_OD_c  &
-              .AND. wannier_center_info(iatom, i)%coord(1) > (-a/2)-R_OD_c  &
-              .AND. wannier_center_info(jatom, i)%coord(1) < (a/2)+R_OD_c   &
-              .AND. wannier_center_info(jatom, i)%coord(1) > (a/2)-R_OD_c  
-              B1 =  wannier_center_info(iatom, i)%coord(2) < (-b/2)+R_OD_c  &
-              .AND. wannier_center_info(iatom, i)%coord(2) > (-b/2)-R_OD_c  &
-              .AND. wannier_center_info(jatom, i)%coord(2) < (b/2)+R_OD_c   &
-              .AND. wannier_center_info(jatom, i)%coord(2) > (b/2)-R_OD_c
-              C1 =  wannier_center_info(iatom, i)%coord(3) < (-c/2)+R_OD_c  &
-              .AND. wannier_center_info(iatom, i)%coord(3) > (-c/2)-R_OD_c  &
-              .AND. wannier_center_info(jatom, i)%coord(3) < (c/2)+R_OD_c   &
-              .AND. wannier_center_info(jatom, i)%coord(3) > (c/2)-R_OD_c 
-              A2 =  wannier_center_info(jatom, i)%coord(1) < (-a/2)+R_OD_c  &
-              .AND. wannier_center_info(jatom, i)%coord(1) > (-a/2)-R_OD_c  &
-              .AND. wannier_center_info(iatom, i)%coord(1) < (a/2)+R_OD_c   &
+              A1 =  wannier_center_info(iatom, i)%coord(1) < (-a/2)+R_OD_c   &
+              .AND. wannier_center_info(iatom, i)%coord(1) > (-a/2)-2*R_OD_c   &
+              .AND. wannier_center_info(jatom, i)%coord(1) < (a/2)           &
+              .AND. wannier_center_info(jatom, i)%coord(1) > (a/2)-3*R_OD_c  
+              B1 =  wannier_center_info(iatom, i)%coord(2) < (-b/2)+R_OD_c   &
+              .AND. wannier_center_info(iatom, i)%coord(2) > (-b/2)-2*R_OD_c   &
+              .AND. wannier_center_info(jatom, i)%coord(2) < (b/2)           &
+              .AND. wannier_center_info(jatom, i)%coord(2) > (b/2)-3*R_OD_c
+              C1 =  wannier_center_info(iatom, i)%coord(3) < (-c/2)+R_OD_c   &
+              .AND. wannier_center_info(iatom, i)%coord(3) > (-c/2)-2*R_OD_c   &
+              .AND. wannier_center_info(jatom, i)%coord(3) < (c/2)           &
+              .AND. wannier_center_info(jatom, i)%coord(3) > (c/2)-3*R_OD_c 
+              A2 =  wannier_center_info(jatom, i)%coord(1) < (-a/2)+3*R_OD_c &
+              .AND. wannier_center_info(jatom, i)%coord(1) > (-a/2)          &
+              .AND. wannier_center_info(iatom, i)%coord(1) < (a/2)+2*R_OD_c    &
               .AND. wannier_center_info(iatom, i)%coord(1) > (a/2)-R_OD_c  
-              B2 =  wannier_center_info(jatom, i)%coord(2) < (-b/2)+R_OD_c  &
-              .AND. wannier_center_info(jatom, i)%coord(2) > (-b/2)-R_OD_c  &
-              .AND. wannier_center_info(iatom, i)%coord(2) < (b/2)+R_OD_c   &
+              B2 =  wannier_center_info(jatom, i)%coord(2) < (-b/2)+3*R_OD_c &
+              .AND. wannier_center_info(jatom, i)%coord(2) > (-b/2)          &
+              .AND. wannier_center_info(iatom, i)%coord(2) < (b/2)+2*R_OD_c    &
               .AND. wannier_center_info(iatom, i)%coord(2) > (b/2)-R_OD_c   
-              C2 =  wannier_center_info(jatom, i)%coord(3) < (-c/2)+R_OD_c  &
-              .AND. wannier_center_info(jatom, i)%coord(3) > (-c/2)-R_OD_c  &
-              .AND. wannier_center_info(iatom, i)%coord(3) < (c/2)+R_OD_c   &
+              C2 =  wannier_center_info(jatom, i)%coord(3) < (-c/2)+3*R_OD_c &
+              .AND. wannier_center_info(jatom, i)%coord(3) > (-c/2)          &
+              .AND. wannier_center_info(iatom, i)%coord(3) < (c/2)+2*R_OD_c    &
               .AND. wannier_center_info(iatom, i)%coord(3) > (c/2)-R_OD_c 
               A0 = (.NOT. A1) .AND. (.NOT. A2)
               B0 = (.NOT. B1) .AND. (.NOT. B2)

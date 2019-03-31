@@ -3,19 +3,14 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
   ! 0a) Purpose: 
   ! The subroutine  coord_transform implement the coordinate translation for the atoms and wannier centers, considering the periodic
   ! boundary condition (PBC) and CLUSTERING.  
-  ! 0b) The subroutine 1c3_coord_translation is different from the subroutine 1c2_coord_translation in the basic idea. 
-  ! 0c) Because do "coordinate tranlastion or not" depends on the choice of the host-guest pair.(IMPORTANT!) 
-  ! Therefore, the image_coord is just a auxinary variable to help us to calculate the distance between host and guest atoms,
-  ! and we have to calculate the distance then to determine the clusters ie., to determine each D atom to belong to a certain D2O water
-  ! molecule. (That means we can not seperate coord translation and clustering. They have to be combined!) 
-  ! 0d) The ecpecting result should be: When calculating the guest-host pair distances, for different host atoms (O atom), the same guest 
-  ! atom (D or X) may use differnt image coordinates to calculate the guest-host pair distance.
+  ! 0b) The subroutine 1c5_coord_translation is different from the subroutine 1c4_coord_translation and before in the host-guest
+  ! pair. In 1c5_coord_translation, D and X atoms are viewed as host atoms, while O atoms are guest atoms. 
+  ! RESULT: the result is the same as version 1c4_coord_translation.
   !
   ! 0e) Record of revisions:
   !    Date             Programmer                  description of Change
   !    ====             ==========                  ====================
-  ! 2019.03.28          Gang Huang                  coord_translation (version 1.3). It does two things:
-  !                                                 clustering and coordinate translation. 
+  ! 2019.03.29          Gang Huang                  coord_translation (version 1.5). 
 
   !==============
   !1) Declaration
@@ -55,47 +50,47 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
   !===========================================================================
   
   ! To determine the Radium cutoff for the host-guest pair
-  if (TRIM(host_atom)=="O" .AND. TRIM(guest_atom)=="H") then
+  if (TRIM(host_atom)=="H" .AND. TRIM(guest_atom)=="O") then
     R_cutoff = 1.05                 ! in Angstrom 
     R_cutoff_square = R_cutoff**2
-  else if (TRIM(host_atom)=="H" .AND. TRIM(guest_atom)=="X") then
+  else if (TRIM(host_atom)=="X" .AND. TRIM(guest_atom)=="O") then
     R_cutoff = 0.6                  ! in Angstrom 
     R_cutoff_square = R_cutoff**2
-  else if (TRIM(host_atom)=="O" .AND. TRIM(guest_atom)=="X") then
-    R_cutoff = 0.7                  ! in Angstrom 
-    R_cutoff_square = R_cutoff**2
+  !else if (TRIM(host_atom)=="O" .AND. TRIM(guest_atom)=="X") then
+  !  R_cutoff = 0.7                  ! in Angstrom 
+  !  R_cutoff_square = R_cutoff**2
   endif
   
   ! coord.translation AND clustering
   outer: do i =1,n_samples
     inner: DO iatom = 1, nat
-      oxygen: if (TRIM(wannier_center_info(iatom, i)%wannier_center_name) == TRIM(host_atom)) then
+      oxygen: if (TRIM(wannier_center_info(iatom, i)%wannier_center_name) .NE. TRIM(guest_atom)) then
         inner2: DO jatom = 1, nat
           hydrogen: if (TRIM(wannier_center_info(jatom, i)%wannier_center_name) == TRIM(guest_atom)) then
               ! define logical varibles
-              A1 =  wannier_center_info(iatom, i)%coord(1) < (-a/2)+R_OD_c  &
-              .AND. wannier_center_info(iatom, i)%coord(1) > (-a/2)-R_OD_c  &
-              .AND. wannier_center_info(jatom, i)%coord(1) < (a/2)+R_OD_c   &
-              .AND. wannier_center_info(jatom, i)%coord(1) > (a/2)-R_OD_c  
-              B1 =  wannier_center_info(iatom, i)%coord(2) < (-b/2)+R_OD_c  &
-              .AND. wannier_center_info(iatom, i)%coord(2) > (-b/2)-R_OD_c  &
-              .AND. wannier_center_info(jatom, i)%coord(2) < (b/2)+R_OD_c   &
-              .AND. wannier_center_info(jatom, i)%coord(2) > (b/2)-R_OD_c
-              C1 =  wannier_center_info(iatom, i)%coord(3) < (-c/2)+R_OD_c  &
-              .AND. wannier_center_info(iatom, i)%coord(3) > (-c/2)-R_OD_c  &
-              .AND. wannier_center_info(jatom, i)%coord(3) < (c/2)+R_OD_c   &
-              .AND. wannier_center_info(jatom, i)%coord(3) > (c/2)-R_OD_c 
-              A2 =  wannier_center_info(jatom, i)%coord(1) < (-a/2)+R_OD_c  &
-              .AND. wannier_center_info(jatom, i)%coord(1) > (-a/2)-R_OD_c  &
-              .AND. wannier_center_info(iatom, i)%coord(1) < (a/2)+R_OD_c   &
+              A1 =  wannier_center_info(iatom, i)%coord(1) < (-a/2)+R_OD_c   &
+              .AND. wannier_center_info(iatom, i)%coord(1) > (-a/2)-2*R_OD_c   &
+              .AND. wannier_center_info(jatom, i)%coord(1) < (a/2)           &
+              .AND. wannier_center_info(jatom, i)%coord(1) > (a/2)-3*R_OD_c  
+              B1 =  wannier_center_info(iatom, i)%coord(2) < (-b/2)+R_OD_c   &
+              .AND. wannier_center_info(iatom, i)%coord(2) > (-b/2)-2*R_OD_c   &
+              .AND. wannier_center_info(jatom, i)%coord(2) < (b/2)           &
+              .AND. wannier_center_info(jatom, i)%coord(2) > (b/2)-3*R_OD_c
+              C1 =  wannier_center_info(iatom, i)%coord(3) < (-c/2)+R_OD_c   &
+              .AND. wannier_center_info(iatom, i)%coord(3) > (-c/2)-2*R_OD_c   &
+              .AND. wannier_center_info(jatom, i)%coord(3) < (c/2)           &
+              .AND. wannier_center_info(jatom, i)%coord(3) > (c/2)-3*R_OD_c 
+              A2 =  wannier_center_info(jatom, i)%coord(1) < (-a/2)+3*R_OD_c &
+              .AND. wannier_center_info(jatom, i)%coord(1) > (-a/2)          &
+              .AND. wannier_center_info(iatom, i)%coord(1) < (a/2)+2*R_OD_c    &
               .AND. wannier_center_info(iatom, i)%coord(1) > (a/2)-R_OD_c  
-              B2 =  wannier_center_info(jatom, i)%coord(2) < (-b/2)+R_OD_c  &
-              .AND. wannier_center_info(jatom, i)%coord(2) > (-b/2)-R_OD_c  &
-              .AND. wannier_center_info(iatom, i)%coord(2) < (b/2)+R_OD_c   &
+              B2 =  wannier_center_info(jatom, i)%coord(2) < (-b/2)+3*R_OD_c &
+              .AND. wannier_center_info(jatom, i)%coord(2) > (-b/2)          &
+              .AND. wannier_center_info(iatom, i)%coord(2) < (b/2)+2*R_OD_c    &
               .AND. wannier_center_info(iatom, i)%coord(2) > (b/2)-R_OD_c   
-              C2 =  wannier_center_info(jatom, i)%coord(3) < (-c/2)+R_OD_c  &
-              .AND. wannier_center_info(jatom, i)%coord(3) > (-c/2)-R_OD_c  &
-              .AND. wannier_center_info(iatom, i)%coord(3) < (c/2)+R_OD_c   &
+              C2 =  wannier_center_info(jatom, i)%coord(3) < (-c/2)+3*R_OD_c &
+              .AND. wannier_center_info(jatom, i)%coord(3) > (-c/2)          &
+              .AND. wannier_center_info(iatom, i)%coord(3) < (c/2)+2*R_OD_c    &
               .AND. wannier_center_info(iatom, i)%coord(3) > (c/2)-R_OD_c 
               A0 = (.NOT. A1) .AND. (.NOT. A2)
               B0 = (.NOT. B1) .AND. (.NOT. B2)
@@ -130,7 +125,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 2 (1/6): the case of A0B0C1 
             elseif (                            & 
@@ -150,7 +145,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
               !===========
               !For testing
@@ -177,7 +172,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 2 (3/6): the case of A0B1C0
             elseif (                             &
@@ -197,7 +192,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 2 (4/6): the case of A0B2C0
             elseif (                             &
@@ -217,7 +212,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 2 (5/6): the case of A1B0C0
             elseif (                             &
@@ -236,7 +231,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 2 (6/6): the case of A2B0C0
             elseif (                             &
@@ -256,7 +251,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 3 (1/12): the case of A0B1C1
             elseif (                             &
@@ -276,7 +271,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 3 (2/12): the case of A0B1C2
             elseif (                             & 
@@ -296,7 +291,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 3 (3/12): the case of A0B2C1
             elseif (                            &
@@ -316,7 +311,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 3 (4/12): the case of A0B2C2
             elseif (                            &
@@ -336,7 +331,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 3 (5/12): the case of A1B0C1
             elseif (                            &
@@ -356,7 +351,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 3 (6/12): the case of A1B0C2
             elseif (                            &
@@ -376,7 +371,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 3 (7/12): the case of A2B0C1
             elseif (                            &
@@ -396,7 +391,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 3 (8/12): the case of A2B0C2
             elseif (                            &
@@ -416,7 +411,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 3 (9/12): the case of A1B1C0
             elseif (                            &
@@ -436,7 +431,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 3 (10/12): the case of A1B2C0
             elseif (                            &
@@ -456,7 +451,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 3 (11/12): the case of A2B1C0
             elseif (                            &
@@ -476,7 +471,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 3 (12/12): the case of A2B2C0
             elseif (                            &
@@ -496,7 +491,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 4 (1/8): the case of A1B1C1
             !===========================================================================================================================
@@ -529,7 +524,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 4 (2/8): the case of A1B1C2
             elseif (                             &
@@ -547,7 +542,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 4 (3/8): the case of A1B2C1
             elseif (                            &
@@ -565,7 +560,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 4 (4/8): the case of A1B2C2
             elseif (                            &
@@ -583,7 +578,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 4 (5/8): the case of A2B1C1
             elseif (                            &
@@ -601,7 +596,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 4 (6/8): the case of A2B1C2
             elseif (                            &
@@ -619,7 +614,8 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+              end if
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 4 (7/8): the case of A2B2C1
             elseif (                            &
@@ -637,7 +633,7 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if
             ! Class 4 (8/8): the case of A2B2C2
             else
@@ -651,9 +647,8 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                 +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%coord(3))**2 &
                 < R_cutoff_square               &
                  ) then
-                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
+                wannier_center_info(iatom, i)%molecular_id = wannier_center_info(jatom, i)%molecular_id
               end if cluster
-            endif
           endif hydrogen
         ENDDO inner2 
       endif oxygen
@@ -667,12 +662,12 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
   !WRITE(*,*) 'transformed coord:', wannier_center_info(1, 1)%image_coord(1)
   !WRITE(*,*) 'molecular id:', wannier_center_info(1, 2)%molecular_id
   !WRITE(*,*) 'transformed coord:', wannier_center_info(1, 2)%image_coord(1)
-  OPEN (UNIT=u,FILE='TEST_OUTPUT_'//TRIM(guest_atom)//'.dat',  &
+  OPEN (UNIT=u,FILE='TEST_OUTPUT_'//TRIM(host_atom)//'.dat',  &
     STATUS='REPLACE',ACTION='WRITE',IOSTAT=ierror)
     WRITE(u, *) 'Coord. of Guest_atom ', ' image_coord ', '  coord  ', '  difference '
   do i = 1, n_samples 
     guest: do jatom = 1, nat 
-      if (TRIM(wannier_center_info(jatom, i)%wannier_center_name) == TRIM(guest_atom)) then
+      if (TRIM(wannier_center_info(jatom, i)%wannier_center_name) == TRIM(host_atom)) then
         WRITE(u,*) wannier_center_info(jatom, i)%wannier_center_name, ' x ', &
                   wannier_center_info(jatom, i)%image_coord(1), wannier_center_info(jatom, i)%coord(1), &
                   wannier_center_info(jatom, i)%image_coord(1) - wannier_center_info(jatom, i)%coord(1)
@@ -690,12 +685,12 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
   !===========
   !For testing
   !===========
-  OPEN (UNIT=u,FILE='test_output_'//TRIM(guest_atom)//'_molecular_id.dat',  &
+  OPEN (UNIT=u,FILE='test_output_'//TRIM(host_atom)//'_molecular_id.dat',  &
         STATUS='REPLACE',ACTION='WRITE',IOSTAT=ierror)
     WRITE(u, *) ' Guest_atom ', ' molecular ID '
   do i = 1, n_samples 
     guest2: do jatom = 1, nat 
-      if (TRIM(wannier_center_info(jatom, i)%wannier_center_name) == TRIM(guest_atom)) then
+      if (TRIM(wannier_center_info(jatom, i)%wannier_center_name) == TRIM(host_atom)) then
         WRITE(u,*) wannier_center_info(jatom, i)%wannier_center_name, &
                    wannier_center_info(jatom, i)%molecular_id
       end if

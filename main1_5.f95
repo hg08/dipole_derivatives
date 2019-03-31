@@ -75,11 +75,11 @@ PROGRAM main
   b = 10.1 ! Angstrom
   c = 10.1 ! Angstrom
   ! coordinate translation and clustering for Deuterium atoms (D)
-  host_atom = "O"
-  guest_atom = "H"
+  host_atom = "X"
+  guest_atom = "O"
   CALL coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
   ! coordinate translation and clustering for Wannier centers (X)
-  guest_atom = "X"
+  host_atom = "H"
   CALL coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
 
   ! Calculate dipole moments for molecules

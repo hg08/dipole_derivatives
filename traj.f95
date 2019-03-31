@@ -105,7 +105,7 @@ CONTAINS
         wannier_center_info(iatom,i_sample)%image_coord(3) = wannier_center_info(iatom,i_sample)%coord(3)
         ! Initialize the charge
         charge: if(TRIM(wannier_center_info(iatom, i_sample)%wannier_center_name) == "O") then 
-          wannier_center_info(iatom,i_sample)%charge = -2
+          wannier_center_info(iatom,i_sample)%charge = 6 
         else if(TRIM(wannier_center_info(iatom, i_sample)%wannier_center_name) == "H") then 
           wannier_center_info(iatom,i_sample)%charge = +1 
         else
