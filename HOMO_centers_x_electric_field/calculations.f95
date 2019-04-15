@@ -349,7 +349,7 @@ SUBROUTINE calculate_dipole_moment(host_atom, nat, n_samples)
   ! Open a file to write down the molecular charge for each molecule.
   OPEN (UNIT=u,FILE='test_output_molecular_charge.dat',STATUS='REPLACE',ACTION='WRITE',IOSTAT=ierror)
   !Loop the trajectory steps 
-  do i = 1, n_samples 
+  do i = 1, n_samples-1 
     indx = 0
     Oxygen: do iatom = 1, nat 
       O: if (TRIM(wannier_center_info(iatom, i)%wannier_center_name) == TRIM(host_atom)) then
@@ -382,7 +382,7 @@ SUBROUTINE calculate_dipole_moment(host_atom, nat, n_samples)
   OPEN (UNIT=u,FILE='test_output_molecular_dipole_moments.dat',  &
         STATUS='REPLACE',ACTION='WRITE',IOSTAT=ierror)
     WRITE(u, *) ' Molecule ID ', ' x ', ' y ', ' z ', 'Dipole moment'
-  do i = 1, n_samples
+  do i = 1, n_samples-1
     do indx = 1, 32 
       WRITE(u,*) indx,  mu(i,indx,1), mu(i,indx,2), mu(i,indx,3), SQRT(mu(i,indx,1)**2 + mu(i,indx,2)**2 +  mu(i,indx,3)**2)
     end do

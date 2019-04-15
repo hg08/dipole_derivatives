@@ -5,4 +5,4 @@ traj_pos_sampled.dat
 *.o
 TEST*
 test*
-plot/*eps
+./*/*/eps
