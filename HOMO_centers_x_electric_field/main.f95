@@ -84,7 +84,7 @@ PROGRAM main
   CALL coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
 
   ! Calculate dipole moments for molecules
-  CALL calculate_dipole_moment(host_atom, nat, n_samples)
+  CALL calculate_oh_dipole_moment(host_atom, nat, n_samples)
   
   !================================================
   ! to write out the 3-D array ---- the linked list

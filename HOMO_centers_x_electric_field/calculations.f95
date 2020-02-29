@@ -82,31 +82,26 @@ SUBROUTINE label(nat,n_samples)
   ! 0a) Purpose: 
   ! The subroutine label to each atom. The total number of the molecular id is T*N, where T is the 
   ! total steps of the reduced trajectory obtained from sampling, and N is the total number of atoms.
-  !
   ! 0b) Record of revisions:
   !    Date             Programmer                  description of Change
   !    ====             ==========                  ====================
   ! 2019.03.27          Gang Huang                  Original code 
-
   !==============
   !1) Declaration
   !==============
   USE wannier_center_module
   IMPLICIT NONE
-
   !==========
   !parameters
   !==========
   INTEGER ::i, iatom
   INTEGER,INTENT(IN) :: nat ! number of atoms
   INTEGER, INTENT(IN) :: n_samples  !n_samples = INT(nmo/ns)
-  
   !===============
   ! Initialization
   !===============
   i =0
   iatom = 0
-
   !=======================================
   ! Labeling each atom with a molecular id
   !=======================================
@@ -115,14 +110,48 @@ SUBROUTINE label(nat,n_samples)
        wannier_center_info(iatom, i)%molecular_id = (i-1)*nat + iatom
     ENDDO
   enddo
-
   !===========
   !For testing
   !===========
-  WRITE(*,*) 'molecular id:', wannier_center_info(1, 1)%molecular_id
-  WRITE(*,*) 'molecular id:', wannier_center_info(1, 2)%molecular_id
-
+  !WRITE(*,*) 'molecular id:', wannier_center_info(1, 1)%molecular_id
+  !WRITE(*,*) 'molecular id:', wannier_center_info(1, 2)%molecular_id
 END SUBROUTINE label
+
+SUBROUTINE label_bond(nat,n_samples)  
+  ! 0a) Purpose: 
+  ! The subroutine label each atom or wannier center with a label \epsilon = 0, 1, or -1. 
+  
+  ! 0b) Record of revisions:
+  !    Date             Programmer                  description of Change
+  !    ====             ==========                  ====================
+  ! 2019/04/15          Gang Huang                  Original code 
+  !==============
+  !1) Declaration
+  !==============
+  USE wannier_center_module
+  IMPLICIT NONE
+  !==========
+  !parameters
+  !==========
+  INTEGER ::i, iatom,j1,j2
+  INTEGER,INTENT(IN) :: nat ! number of atoms
+  INTEGER, INTENT(IN) :: n_samples  !n_samples = INT(nmo/ns)
+  !===============
+  ! Initialization
+  !===============
+  i =0
+  iatom = 0
+  j1=0; j2=0
+  !===================================================
+  ! Labeling each atom with a molecular id and bond id
+  !===================================================
+  do i =1,n_samples
+    DO iatom = 1, nat
+       wannier_center_info(iatom, i)%molecular_id = (i-1)*nat + iatom
+       wannier_center_info(iatom, i)%bond_id = 0
+    ENDDO
+  enddo
+END SUBROUTINE label_bond
 
 SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
   ! 0a) Purpose: 
@@ -137,13 +166,11 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
   !    Date             Programmer                  description of Change
   !    ====             ==========                  ====================
   ! 2019.03.29          Gang Huang                  coord_translation (version 1.7). 
-
   !==============
   !1) Declaration
   !==============
   USE wannier_center_module
   IMPLICIT NONE
-
   !==========
   !parameters
   !==========
@@ -180,7 +207,6 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
   ! Translate the coordinates of gust atoms
   ! Purpose: to consider the PBC when calculate the distance between two atoms
   !===========================================================================
-  
   ! To determine the Radium cutoff for the host-guest pair
   if (TRIM(host_atom)=="O" .AND. TRIM(guest_atom)=="H") then
     R_cutoff = 1.32                 ! in Angstrom 
@@ -209,10 +235,6 @@ SUBROUTINE coord_translation(guest_atom, host_atom, nat, n_samples, a, b, c)
                   +(wannier_center_info(jatom, i)%image_coord(3) - wannier_center_info(iatom, i)%image_coord(3))**2 
              if (tmp .LE. R_cutoff_square) then                
                wannier_center_info(jatom, i)%molecular_id = wannier_center_info(iatom, i)%molecular_id
-               !wannier_center_info(jatom, i)%image_coord(1) = wannier_center_info(jatom, i)%coord(1) 
-               !wannier_center_info(jatom, i)%image_coord(2) = wannier_center_info(jatom, i)%coord(1) 
-               !wannier_center_info(jatom, i)%image_coord(3) = wannier_center_info(jatom, i)%coord(1) 
-             !elseif ((tmp .GE. 103.75) .OR. (tmp .LE. 205.76)) then
              else
                CALL min_dist_image(wannier_center_info(iatom, i),wannier_center_info(jatom, i),a,b,c,min_dist_image_value,ll,mm,nn) 
                if (min_dist_image_value .LE. R_cutoff_square) then
@@ -251,7 +273,6 @@ SUBROUTINE min_dist_image(p1,p2,a,b,c,min_value,ll,mm,nn)
   !   To return the minimum of the distance between the image of a host-gust pair
   USE wannier_center_module
   IMPLICIT NONE
-
   !================
   ! Data Dictionary
   REAL(kind=4), INTENT(IN) :: a, b, c               ! Parameters of the simulation box 
@@ -391,3 +412,129 @@ SUBROUTINE calculate_dipole_moment(host_atom, nat, n_samples)
 
   DEALLOCATE(mu)
 END SUBROUTINE calculate_dipole_moment
+
+SUBROUTINE calculate_oh_dipole_moment(host_atom, nat, n_samples)  
+  ! 0a) Purpose: 
+  ! The subroutine calculate_oh_dipole_moment is used to calculate dipole moment for each OH bond in water molecule (D2O)  
+  !
+  ! 0b) Record of revisions:
+  !    Date             Programmer                  description of Change
+  !    ====             ==========                  ====================
+  ! 2019/04/15          Gang Huang                  Original code 
+  !==============
+  !1) Declaration
+  !==============
+  USE wannier_center_module
+  IMPLICIT NONE
+
+  !==========
+  !parameters
+  !==========
+  INTEGER,PARAMETER :: rk = 8
+  REAL(kind=rk), ALLOCATABLE, DIMENSION(:,:,:) :: mu             ! type: 3 * n_molecule * n_samples
+  INTEGER ::i, iatom, jatom
+  INTEGER :: indx                                   ! index of molecules
+  INTEGER :: istat
+  INTEGER,INTENT(IN) :: nat                         ! number of WF centers 
+  INTEGER :: num_bond
+  INTEGER, INTENT(IN) :: n_samples                  ! n_samples = INT(nmo/ns)
+  CHARACTER(2), INTENT(IN) :: host_atom             ! to define the types of host and guest atoms
+  INTEGER :: u, ierror
+  REAL(kind=rk) :: total_charge, tmp
+  REAL(kind=rk),PARAMETER:: R_OH_cutoff = 1.32 
+  REAL(kind=rk),PARAMETER:: R_HX_cutoff = 0.55                  ! in Angstrom 
+  REAL(kind=rk),PARAMETER:: R_OX_cutoff = 0.7                  ! in Angstrom 
+  REAL(kind=rk):: R_OH_cutoff_square 
+  REAL(kind=rk):: R_HX_cutoff_square 
+  REAL(kind=rk):: R_OX_cutoff_square 
+  REAL(kind=rk):: dist_square 
+  !===============
+  ! Initialization
+  !===============
+  tmp = 0
+  i =0
+  iatom = 0 
+  jatom = 0
+  u = 8        ! UNIT for WRITING
+  ierror = 2   
+  istat = 0
+  total_charge = 0.0
+  num_bond = 2*(nat/7) ! number of OH bond
+  R_OH_cutoff_square = R_OH_cutoff**2
+  R_HX_cutoff_square = R_HX_cutoff**2
+  R_OX_cutoff_square = R_OX_cutoff**2
+
+  !============================
+  ! Calculate the dipole moment
+  !============================
+  indx = 0
+  ALLOCATE(mu(n_samples, num_bond, 3),STAT=istat)
+  mu(:,:,:) = 0.0
+  !==================================================================
+  ! For testing
+  ! Open a file to write down the molecular charge for each molecule.
+  OPEN (UNIT=u,FILE='test_output_molecular_charge.dat',STATUS='REPLACE',ACTION='WRITE',IOSTAT=ierror)
+  !Loop the trajectory steps 
+  do i = 1, n_samples-1 
+  !do i = 1, 2 
+    indx = 0
+    do jatom = 1, nat
+      total_charge = 0.0
+      if ( TRIM(wannier_center_info(jatom, i)%wannier_center_name) == TRIM(host_atom) ) then
+        indx = indx + 1
+        WRITE(*,*) "indx = ", indx
+        mu(i,indx,1) = mu(i,indx,1) + wannier_center_info(jatom, i)%image_coord(1) * wannier_center_info(jatom, i)%charge  
+        mu(i,indx,2) = mu(i,indx,2) + wannier_center_info(jatom, i)%image_coord(2) * wannier_center_info(jatom, i)%charge
+        mu(i,indx,3) = mu(i,indx,3) + wannier_center_info(jatom, i)%image_coord(3) * wannier_center_info(jatom, i)%charge
+        total_charge = total_charge + wannier_center_info(jatom, i)%charge
+        do iatom = 1, nat
+          if ( TRIM(wannier_center_info(iatom, i)%wannier_center_name) .NE. TRIM(host_atom)  .AND.                     &
+              (wannier_center_info(iatom, i)%molecular_id == wannier_center_info(jatom, i)%molecular_id)) then 
+            tmp = dist_square(iatom,jatom,i)
+            WRITE(*,*) "distance:", tmp
+            if ( tmp .LE. 1.404 .AND. tmp .GE. R_HX_cutoff_square) then
+              WRITE(*,*)"Here FARFAR..."
+              mu(i,indx,1) =mu(i,indx,1)+ wannier_center_info(iatom, i)%image_coord(1) * (wannier_center_info(iatom, i)%charge)/2  
+              mu(i,indx,2) =mu(i,indx,2)+ wannier_center_info(iatom, i)%image_coord(2) * (wannier_center_info(iatom, i)%charge)/2
+              mu(i,indx,3) =mu(i,indx,3)+ wannier_center_info(iatom, i)%image_coord(3) * (wannier_center_info(iatom, i)%charge)/2
+              total_charge = total_charge + (wannier_center_info(jatom, i)%charge)/2
+            elseif (tmp .LE. R_HX_cutoff_square) then
+              WRITE(*,*)"Here NEAR CENTERS..."
+              mu(i,indx,1) =mu(i,indx,1)+ wannier_center_info(iatom, i)%image_coord(1) * (wannier_center_info(iatom, i)%charge)
+              mu(i,indx,2) =mu(i,indx,2)+ wannier_center_info(iatom, i)%image_coord(2) * (wannier_center_info(iatom, i)%charge)
+              mu(i,indx,3) =mu(i,indx,3)+ wannier_center_info(iatom, i)%image_coord(3) * (wannier_center_info(iatom, i)%charge)
+              total_charge = total_charge + wannier_center_info(jatom, i)%charge
+            endif 
+          endif
+          WRITE(u,*) "total charge:",iatom, jatom, total_charge
+        enddo  
+      end if
+    enddo
+  enddo
+  CLOSE(UNIT=u)
+  !===========
+  !For testing
+  !===========
+  OPEN (UNIT=u,FILE='test_output_oh_dipole_moments.dat',  &
+        STATUS='REPLACE',ACTION='WRITE',IOSTAT=ierror)
+    WRITE(u, *) ' Molecule ID ', ' x ', ' y ', ' z ', 'Dipole moment'
+  do i = 1, n_samples-1
+    do indx = 1, num_bond 
+      WRITE(u,*) indx,  mu(i,indx,1), mu(i,indx,2), mu(i,indx,3), SQRT(mu(i,indx,1)**2 + mu(i,indx,2)**2 +  mu(i,indx,3)**2)
+    end do
+  end do 
+  CLOSE(u)
+  !==============
+  !Deallocate mu
+  !==============
+  DEALLOCATE(mu)
+END SUBROUTINE calculate_oh_dipole_moment
+
+REAL(8) FUNCTION dist_square(iatom,jatom,istep)
+  USE wannier_center_module 
+  IMPLICIT NONE
+  INTEGER,INTENT(IN) :: iatom,jatom,istep
+  dist_square=(wannier_center_info(iatom, istep)%image_coord(1)-wannier_center_info(jatom, istep)%image_coord(1))**2+      &
+  (wannier_center_info(iatom, istep)%image_coord(2)-wannier_center_info(jatom, istep)%image_coord(2))**2+                  &
+  (wannier_center_info(iatom, istep)%image_coord(3)-wannier_center_info(jatom, istep)%image_coord(3))**2
+END FUNCTION dist_square

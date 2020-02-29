@@ -6,11 +6,12 @@ IMPLICIT NONE
 TYPE :: wannier_center
   CHARACTER(LEN=2) :: wannier_center_name
   INTEGER :: molecular_id
+  INTEGER :: bond_id ! bond_id can be 0,-1 or 1
   REAL(kind=4) :: charge
   REAL, DIMENSION(3) :: coord 
   REAL, DIMENSION(3) :: image_coord 
 END TYPE wannier_center
-
 ! The array atom_info can be shared by subroutines  
 TYPE(wannier_center), ALLOCATABLE, DIMENSION(:,:) :: wannier_center_info
+
 END MODULE wannier_center_module
